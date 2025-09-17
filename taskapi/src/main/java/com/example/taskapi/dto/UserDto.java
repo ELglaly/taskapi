@@ -1,10 +1,19 @@
 package com.example.taskapi.dto;
 
-public record UserDto(
-    Long id,
-    String username,
-    String email,
-    String phoneNumber,
-    String address
-) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class UserDto implements Serializable {
+    private Long id;
+    private String username;
+    private String email;
+    private String phoneNumber;
+    private String address;
 }
+
