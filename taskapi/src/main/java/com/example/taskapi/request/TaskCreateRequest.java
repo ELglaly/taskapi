@@ -2,14 +2,10 @@ package com.example.taskapi.request;
 
 import com.example.taskapi.entity.appenum.TaskStatus;
 import com.example.taskapi.validation.NoXSS;
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Value;
 
 public record TaskCreateRequest (
 
@@ -23,8 +19,8 @@ public record TaskCreateRequest (
     @NoXSS
     String description,
 
-    @NotNull(message = "Status is required")
-    TaskStatus status
+    @NotBlank(message = "Status is required")
+    String status
     )
 {
 }
