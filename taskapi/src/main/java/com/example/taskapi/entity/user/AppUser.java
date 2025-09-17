@@ -10,17 +10,13 @@ import lombok.Setter;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
-import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Enhanced AppUser entity with comprehensive security, validation, and performance optimizations.
@@ -86,16 +82,8 @@ public class AppUser {
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @CreatedBy
-    @Column(name = "created_by", updatable = false, length = 100)
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
 
     @Version
     private Long version;
@@ -143,6 +131,7 @@ public class AppUser {
 
     @PrePersist
     protected void onCreate() {
+        createdAt = LocalDateTime.now();
         // Set defaults safely
         if (this.active == null) {
             this.active = true;
@@ -151,6 +140,11 @@ public class AppUser {
         if (this.verified == null) {
             this.verified = false;
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
 
