@@ -71,19 +71,7 @@ public class AppUser {
     @Column(name = "full_name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean active = true;
 
-    @Column(name = "is_verified", nullable = false)
-    private Boolean verified = false;
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @Version
     private Long version;
@@ -114,8 +102,6 @@ public class AppUser {
     private AppUser(Builder builder) {
         this.username = builder.username;
         this.name = builder.name;
-        this.active = true;
-        this.verified = false;
         this.appUserSecurity = builder.appUserSecurity;
         this.appUserContact = builder.appUserContact;
     }
@@ -127,24 +113,6 @@ public class AppUser {
 
     public String getPhoneNumber() {
         return appUserContact != null ? appUserContact.getPhoneNumber() : null;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        // Set defaults safely
-        if (this.active == null) {
-            this.active = true;
-        }
-
-        if (this.verified == null) {
-            this.verified = false;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 
 
