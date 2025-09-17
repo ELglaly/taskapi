@@ -16,6 +16,7 @@ public class AppException extends RuntimeException implements Serializable {
     public AppException(String message) {
         Error = new AppErrorResponse.Builder()
                 .message(message)
+                .errorCode("INTERNAL_SERVER_ERROR")
                 .timestamp()
                 .isLoggable(true)
                 .build();

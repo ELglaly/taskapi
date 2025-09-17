@@ -15,5 +15,6 @@ public class InvalidInputException extends AppException {
     public InvalidInputException(String message) {
         super(message);
         getError().setStatus(HttpStatus.BAD_REQUEST.value());
+        getError().setErrorCode("INVALID_INPUT");
     }
 }

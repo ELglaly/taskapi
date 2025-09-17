@@ -9,6 +9,6 @@ public class WeakPasswordException extends AppException {
     public WeakPasswordException(String message) {
         super(message);
         getError().setStatus(HttpStatus.BAD_REQUEST.value());
-
+        getError().setErrorCode("WEAK_PASSWORD");
     }
 }

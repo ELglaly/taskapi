@@ -2,10 +2,12 @@ package com.example.taskapi.exception;
 
 import com.example.taskapi.response.AppErrorResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,9 +24,9 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
     /**
      * Handle Bean Validation errors (@Valid annotation failures)
-     * This catches your email validation error
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<AppErrorResponse> handleValidationExceptions(
@@ -58,7 +60,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle constraint validation exceptions (method-level validation)
+     * Handle constraint validation exceptions
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<AppErrorResponse> handleConstraintViolationException(
@@ -67,7 +69,6 @@ public class GlobalExceptionHandler {
         log.error("Constraint violation: {}", ex.getMessage());
 
         Map<String, String> violations = new HashMap<>();
-
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             String propertyPath = violation.getPropertyPath().toString();
             String message = violation.getMessage();
@@ -88,16 +89,79 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle custom business logic exceptions
+     * Handle specific BadCredentialsException - FIXED: More specific than AuthenticationException
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<AppErrorResponse> handleBadCredentialsException(
+            BadCredentialsException ex, WebRequest request) {
+
+        log.warn("Bad credentials: {}", ex.getMessage());
+
+        AppErrorResponse errorResponse = AppErrorResponse.builder()
+                .message("Invalid email or password")
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .errorCode("INVALID_CREDENTIALS")
+                .path(extractPath(request))
+                .timestamp()
+                .isLoggable(false)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Handle general authentication exceptions - FIXED: Exclude BadCredentialsException
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<AppErrorResponse> handleAuthenticationException(
+            AuthenticationException ex, WebRequest request) {
+
+        log.warn("Authentication failed: {}", ex.getMessage());
+
+        AppErrorResponse errorResponse = AppErrorResponse.builder()
+                .message("Authentication failed")
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .errorCode("AUTHENTICATION_FAILED")
+                .path(extractPath(request))
+                .timestamp()
+                .isLoggable(false)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Handle UserNotFoundException
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<AppErrorResponse> handleUserNotFoundException(
+            UserNotFoundException ex, WebRequest request) {
+
+        log.warn("User not found: {}", ex.getMessage());
+
+        AppErrorResponse errorResponse = AppErrorResponse.builder()
+                .message("User not found")
+                .status(HttpStatus.NOT_FOUND.value())
+                .errorCode("USER_NOT_FOUND")
+                .path(extractPath(request))
+                .timestamp()
+                .isLoggable(false)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Handle UserAlreadyExistsException
      */
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<AppErrorResponse> handleUserAlreadyExistsException(
             UserAlreadyExistsException ex, WebRequest request) {
 
-        log.warn("User registration failed - user already exists: {}", ex.getMessage());
+        log.warn("User already exists: {}", ex.getMessage());
 
         AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message(ex.getMessage() != null ? ex.getMessage() : "User with this email already exists")
+                .message(ex.getMessage() != null ? ex.getMessage() : "User already exists")
                 .status(HttpStatus.CONFLICT.value())
                 .errorCode("USER_ALREADY_EXISTS")
                 .path(extractPath(request))
@@ -109,18 +173,39 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle authentication exceptions
+     * Handle account locked exceptions
      */
-    @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
-    public ResponseEntity<AppErrorResponse> handleAuthenticationException(
-            Exception ex, WebRequest request) {
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<AppErrorResponse> handleAccountLockedException(
 
-        log.warn("Authentication failed: {}", ex.getMessage());
+            AccountLockedException ex, WebRequest request) {
+        log.warn("Account locked: {}", ex.getMessage());
 
         AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message("Invalid credentials")
+                .message(ex.getMessage() != null ? ex.getMessage() : "Account is temporarily locked")
+                .status(HttpStatus.LOCKED.value())
+                .errorCode("ACCOUNT_LOCKED")
+                .path(extractPath(request))
+                .timestamp()
+                .isLoggable(false)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.LOCKED);
+    }
+
+    /**
+     * Handle account disabled exceptions
+     */
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<AppErrorResponse> handleAccountDisabledException(
+            DisabledException ex, WebRequest request) {
+
+        log.warn("Account disabled: {}", ex.getMessage());
+
+        AppErrorResponse errorResponse = AppErrorResponse.builder()
+                .message("Account is disabled")
                 .status(HttpStatus.UNAUTHORIZED.value())
-                .errorCode("AUTHENTICATION_FAILED")
+                .errorCode("ACCOUNT_DISABLED")
                 .path(extractPath(request))
                 .timestamp()
                 .isLoggable(false)
@@ -172,24 +257,38 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle invalid input exceptions
+     * Handle data integrity violations
      */
-    @ExceptionHandler(InvalidInputException.class)
-    public ResponseEntity<AppErrorResponse> handleInvalidInputException(
-            InvalidInputException ex, WebRequest request) {
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<AppErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
 
-        log.warn("Invalid input: {}", ex.getMessage());
+        log.error("Data integrity violation: {}", ex.getMessage());
+
+        String message = "Data integrity constraint violated";
+        String errorCode = "DATA_INTEGRITY_VIOLATION";
+
+        // Check for specific constraint violations
+        if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("email")) {
+                message = "Email already exists";
+                errorCode = "EMAIL_ALREADY_EXISTS";
+            } else if (ex.getMessage().contains("username")) {
+                message = "Username already exists";
+                errorCode = "USERNAME_ALREADY_EXISTS";
+            }
+        }
 
         AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message(ex.getMessage())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .errorCode("INVALID_INPUT")
+                .message(message)
+                .status(HttpStatus.CONFLICT.value())
+                .errorCode(errorCode)
                 .path(extractPath(request))
                 .timestamp()
-                .isLoggable(false)
+                .isLoggable(true)
                 .build();
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     /**
@@ -202,7 +301,7 @@ public class GlobalExceptionHandler {
         log.warn("Illegal argument: {}", ex.getMessage());
 
         AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message(ex.getMessage())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid request parameters")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .errorCode("INVALID_REQUEST")
                 .path(extractPath(request))
@@ -214,60 +313,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle weak password exceptions
+     * Handle all other exceptions (fallback) - FIXED: More specific type to avoid conflicts
      */
-    @ExceptionHandler(WeakPasswordException.class)
-    public ResponseEntity<AppErrorResponse> handleWeakPasswordException(
-            WeakPasswordException ex, WebRequest request) {
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<AppErrorResponse> handleRuntimeException(
+            RuntimeException ex, WebRequest request) {
 
-        log.warn("Weak password provided: {}", ex.getMessage());
-
-        AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message(ex.getMessage())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .errorCode("WEAK_PASSWORD")
-                .path(extractPath(request))
-                .timestamp()
-                .isLoggable(false)
-                .build();
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handle account locked exceptions
-     */
-    @ExceptionHandler(AccountLockedException.class)
-    public ResponseEntity<AppErrorResponse> handleAccountLockedException(
-            AccountLockedException ex, WebRequest request) {
-
-        log.warn("Account locked: {}", ex.getMessage());
-
-        AppErrorResponse errorResponse = AppErrorResponse.builder()
-                .message(ex.getMessage())
-                .status(HttpStatus.LOCKED.value())
-                .errorCode("ACCOUNT_LOCKED")
-                .path(extractPath(request))
-                .timestamp()
-                .isLoggable(false)
-                .build();
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.LOCKED);
-    }
-
-    /**
-     * Handle all other exceptions (fallback)
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<AppErrorResponse> handleGlobalException(
-            Exception ex, WebRequest request) {
-
-        log.error("Unexpected error occurred", ex);
+        log.error("Unexpected runtime error occurred", ex);
 
         AppErrorResponse errorResponse = AppErrorResponse.builder()
                 .message("An unexpected error occurred. Please try again later.")
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .errorCode("INTERNAL_SERVER_ERROR")
+                .errorCode("RUNTIME_ERROR")
                 .path(extractPath(request))
                 .timestamp()
                 .isLoggable(true)

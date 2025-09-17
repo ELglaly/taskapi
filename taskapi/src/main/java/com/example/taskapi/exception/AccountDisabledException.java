@@ -8,5 +8,6 @@ public class AccountDisabledException extends AppException {
     public AccountDisabledException(String message) {
         super(message);
         getError().setStatus(HttpStatus.BAD_REQUEST.value());
+        getError().setErrorCode("ACCOUNT_DISABLED");
     }
 }
