@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Optional;
 
@@ -25,10 +26,12 @@ import java.util.Optional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
 
     @Autowired
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(UserRepository userRepository, TransactionTemplate transactionTemplate) {
         this.userRepository = userRepository;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
@@ -39,7 +42,6 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @throws UsernameNotFoundException if user not found
      */
     @Override
-    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
         log.info("Loading user by email: {}", email);
@@ -48,8 +50,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         // Find user by email
-        AppUser user = Optional.ofNullable(userRepository.findByAppUserContactEmail(email.toLowerCase().trim(),AppUser.class))
-                .orElseThrow(UserNotFoundException::new);
+        AppUser user = transactionTemplate.execute(status -> {
+            status.isReadOnly();
+          return Optional.ofNullable(userRepository.findByAppUserContactEmail(email.toLowerCase().trim(),AppUser.class))
+                    .orElseThrow(UserNotFoundException::new);
+        });
 
         log.info("User found: {}", user.getAppUserContact().getEmail());
         // Check if user data is complete
@@ -66,7 +71,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                     String.format("User contact data missing for user: %s", user.getUsername())
             );
         }
-
         // Create and return secure UserDetails
         return CustomUserDetails.from(user);
     }

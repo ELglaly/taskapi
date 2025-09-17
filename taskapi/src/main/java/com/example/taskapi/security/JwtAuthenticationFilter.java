@@ -1,10 +1,9 @@
-package com.example.taskapi.security.jwt;
+package com.example.taskapi.security;
 
 import com.example.taskapi.exception.UserNotFoundException;
 import com.example.taskapi.security.CustomAuthenticationProvider;
 import com.example.taskapi.security.CustomUserDetailsService;
 import com.example.taskapi.security.JwtService;
-import com.example.taskapi.service.CustomUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -88,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         // Set security headers for all responses
-        setSecurityHeaders(response);
+       // setSecurityHeaders(response);
 
         try {
             // Skip JWT validation for public endpoints
@@ -141,7 +140,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                   FilterChain filterChain, String jwt)
             throws ServletException, IOException {
 
-        try {
             // Extract username from token
             String username = jwtService.extractUsername(jwt);
 
@@ -160,15 +158,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // Load user details
-            UserDetails userDetails;
-            try {
-                userDetails = userDetailsService.loadUserByUsername(username);
-            } catch (UserNotFoundException ex) {
-                log.warn("User not found: {}", username);
-                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND",
-                        "User not found");
-                return;
-            }
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             // Validate token against user details
             if (!jwtService.isTokenValid(jwt, userDetails)) {
@@ -185,7 +175,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         "Account is disabled");
                 return;
             }
-
             // Set authentication in security context
             setAuthenticationInContext(request, userDetails);
 
@@ -194,11 +183,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Continue filter chain
             filterChain.doFilter(request, response);
 
-        } catch (Exception ex) {
-            log.error("Error during user authentication: {}", ex.getMessage(), ex);
-            sendErrorResponse(response, HttpStatus.INTERNAL_SERVER_ERROR, "AUTHENTICATION_ERROR",
-                    "Authentication processing failed");
-        }
     }
 
     /**
@@ -231,46 +215,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
-    }
-
-    /**
-     * Set comprehensive security headers
-     */
-    private void setSecurityHeaders(HttpServletResponse response) {
-        // Prevent XSS attacks
-        response.setHeader("X-XSS-Protection", "1; mode=block");
-
-        // Prevent content type sniffing
-        response.setHeader("X-Content-Type-Options", "nosniff");
-
-        // Prevent clickjacking
-        response.setHeader("X-Frame-Options", "DENY");
-
-        // Content Security Policy
-        response.setHeader("Content-Security-Policy",
-                "default-src 'self'; " +
-                        "script-src 'self'; " +
-                        "style-src 'self' 'unsafe-inline'; " +
-                        "img-src 'self' data:; " +
-                        "font-src 'self'; " +
-                        "connect-src 'self'; " +
-                        "frame-ancestors 'none'"
-        );
-
-        // Referrer Policy
-        response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-
-        // HSTS for HTTPS
-        response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-
-        // Permissions Policy
-        response.setHeader("Permissions-Policy",
-                "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
-
-        // Cache Control for sensitive endpoints
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
-        response.setHeader("Pragma", "no-cache");
-        response.setHeader("Expires", "0");
     }
 
     /**

@@ -41,8 +41,6 @@ public class CustomUserDetails implements UserDetails {
     // Account status fields
     private boolean active;
     private boolean verified;
-    private boolean accountLocked;
-    private boolean passwordExpired;
 
 
     /**
@@ -69,8 +67,6 @@ public class CustomUserDetails implements UserDetails {
                 .password(user.getAppUserSecurity().getPasswordHash()) // Secure hash access
                 .active(user.getAppUserSecurity().getActive())
                 .verified(user.getAppUserSecurity().getVerified())
-                .accountLocked(user.getAppUserSecurity().getActive())
-                .passwordExpired(user.getAppUserSecurity().getActive())
                 .build();
     }
 
@@ -114,30 +110,12 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
-     * SECURITY: Check if account is not locked
-     * Account gets locked after multiple failed login attempts
-     */
-    @Override
-    public boolean isAccountNonLocked() {
-        return !accountLocked;
-    }
-
-    /**
-     * SECURITY: Check if credentials (password) are not expired
-     * Password expires based on policy (e.g., every 90 days)
-     */
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return !passwordExpired;
-    }
-
-    /**
      * SECURITY: Check if account is enabled
      * Disabled accounts cannot authenticate
      */
     @Override
     public boolean isEnabled() {
-        return active && verified; // Account must be both active and email verified
+        return active ;
     }
 
 
