@@ -35,31 +35,28 @@ public class TaskValidationImpl implements TaskValidation {
 
         // NULL VALIDATION
         Objects.requireNonNull(request, "Task creation request cannot be null");
-        Objects.requireNonNull(request.title(), "Task title cannot be null");
-        Objects.requireNonNull(request.status(), "Task status cannot be null");
+        Objects.requireNonNull(request.getTitle(), "Task title cannot be null");
+        Objects.requireNonNull(request.getDescription(), "description title cannot be null");
+        Objects.requireNonNull(request.getStatus(), "Task status cannot be null");
 
         // TITLE VALIDATION
-        validateTitle(request.title());
+        validateTitle(request.getTitle());
 
         // DESCRIPTION VALIDATION (optional field)
-        if (request.description() != null && !request.description().trim().isEmpty()) {
-            validateDescription(request.description());
+        if (!request.getDescription().trim().isEmpty()) {
+            validateDescription(request.getDescription());
         }
 
         // STATUS VALIDATION
-        validateStatusString(request.status());
+        validateStatusString(request.getStatus());
 
         // SECURITY VALIDATION
-        validateForXSS(request.title(), "title");
-        if (request.description() != null) {
-            validateForXSS(request.description(), "description");
-        }
+        validateForXSS(request.getTitle(), "title");
+        validateForXSS(request.getDescription(), "description");
 
         // SQL INJECTION VALIDATION
-        validateForSQLInjection(request.title(), "title");
-        if (request.description() != null) {
-            validateForSQLInjection(request.description(), "description");
-        }
+        validateForSQLInjection(request.getTitle(), "title");
+        validateForSQLInjection(request.getDescription(), "description");
 
         log.debug("Task creation request validation passed");
     }
