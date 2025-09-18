@@ -4,6 +4,7 @@ import com.example.taskapi.dto.TaskDto;
 import com.example.taskapi.entity.Task;
 import com.example.taskapi.entity.appenum.TaskStatus;
 import com.example.taskapi.entity.user.AppUser;
+import com.example.taskapi.exception.InvalidInputException;
 import com.example.taskapi.exception.TaskNotFoundException;
 import com.example.taskapi.factory.TaskFactory;
 import com.example.taskapi.mapper.TaskMapper;
@@ -22,6 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,21 +61,37 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(TaskNotFoundException::new);
 
         CustomUserDetails userDetails = getCurrentUser();
-        if (taskId.equals(userDetails.getId())) {
+
+        if (!existing.getAppUser().getId().equals(userDetails.getId())) {
             throw new AccessDeniedException("Cannot update another user’s task");
         }
 
-        Task saved = taskRepository.save(existing);
-        log.info("Task {} updated", saved.getId());
-        return taskMapper.toDto(saved);
+        if(request.status().equalsIgnoreCase("open"))
+        {
+            taskRepository.updateTaskStatusById(taskId, TaskStatus.OPEN);
+            existing.setStatus(TaskStatus.OPEN);
+        }
+        else if(request.status().equalsIgnoreCase("done"))
+        {
+            taskRepository.updateTaskStatusById(taskId, TaskStatus.DONE);
+            existing.setStatus(TaskStatus.DONE);
+        }
+        else
+            throw new InvalidInputException("Status Must Be Open Or Done");
+
+        log.info("Task {} updated", existing.getId());
+        return taskMapper.toDto(existing);
     }
 
     @Override
     @Transactional()
     public Page<TaskDto> getAllTasksForUser(int page, int size, String sortBy, String sortDir) {
+        log.info("Service Layer in getAllTasksForUser");
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
-        return taskRepository.findByAppUserId(getCurrentUser().getId(),
-                PageRequest.of(page, size, sort),TaskDto.class);
+        Page<Task> tasks= taskRepository.findByAppUserId(getCurrentUser().getId(),
+                PageRequest.of(page, size, sort));
+        return tasks.map(taskMapper::toDto);
+
     }
 
     @Override

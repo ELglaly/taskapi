@@ -13,9 +13,11 @@ import com.example.taskapi.security.JwtService;
 import com.example.taskapi.validation.UserValidation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -90,23 +92,19 @@ public class UserServiceImpl implements UserService {
             log.info("Authenticating user with email: {}", loginRequest.email());
             Authentication authentication = authenticationManager.authenticate(authToken);
 
-            // Extract authenticated user details
-            log.info("User authenticated: {}", loginRequest.email());
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            // This line is NEVER reached if authentication fails
+            if(authentication.isAuthenticated()) {
+                log.info("User Authenticated successfully");
 
-            // Generate JWT token with user details
-            String token = jwtService.generateToken(userDetails);
-            log.info("Login successful for email: {}", loginRequest.email());
-
-            return token;
+                // Generate JWT token
+              return jwtService.generateToken((UserDetails) authentication.getPrincipal());
+            } else {
+                log.error("Authentication object exists but not authenticated");
+                throw new BadCredentialsException("Authentication failed");
+            }
 
         } catch (AccountDisabledException |InValidCredientailException e) {
             throw e;
-        }
-        catch (Exception e) {
-            // unexpected errors and throw generic exception
-            log.error("Unexpected error during login for email: {}", (loginRequest.email()), e);
-            throw new AppException("Login failed. Please try again later.");
         }
     }
 
