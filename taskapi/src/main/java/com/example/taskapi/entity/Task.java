@@ -6,6 +6,7 @@ import com.example.taskapi.validation.NoXSS;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
@@ -31,6 +32,7 @@ import java.util.Objects;
 @Table(name = "tasks")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
+@Setter
 @DynamicUpdate
 public class Task {
 
@@ -60,16 +62,8 @@ public class Task {
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @CreatedBy
-    @Column(name = "created_by", updatable = false, length = 100)
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_task_user"))
@@ -95,10 +89,17 @@ public class Task {
 
     @PrePersist
     protected void onCreate() {
+        this.createdAt =LocalDateTime.now();
         if (this.status == null) {
             this.status = TaskStatus.OPEN;
         }
         this.archived = false;
+    }
+
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
 
