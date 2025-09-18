@@ -1,5 +1,6 @@
 package com.example.taskapi.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
@@ -26,6 +27,8 @@ public class AppErrorResponse {
         private LocalDateTime timestamp;
 
         private Map<String, String> fieldErrors;
+
+        @JsonIgnore
         private Boolean isLoggable;
 
         // Private constructor for builder pattern
