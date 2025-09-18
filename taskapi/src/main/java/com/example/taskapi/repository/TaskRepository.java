@@ -16,9 +16,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     <T> T findById(@Param("id") Long id, Class<T> projection);
     void deleteById(Long id);
 
-    <T> Page<T> findByAppUserId(@Param("userId") Long userId,
-                                Pageable pageable,
-                                Class<T> projection);
+    Page<Task> findByAppUserId(@Param("userId") Long userId, Pageable pageable);
     @Modifying
     @Transactional
     @Query("UPDATE Task t SET t.status = :status WHERE t.id = :id")
