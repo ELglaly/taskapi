@@ -1,21 +1,20 @@
 package com.example.taskapi.security;
-
-import com.example.taskapi.security.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,31 +30,31 @@ import java.util.function.Function;
  * - Support for refresh tokens
  * - Role-based claims
  * - Secure exception handling
- *
- * @author Your Name
- * @version 2.0
- * @since 2025-09-17
  */
 @Service
 @Slf4j
 public class JwtServiceImpl implements JwtService {
-    
 
-    @Value("${app.jwt.secret:mySecretKey}")
-    private String jwtSecret;
 
-    @Value("${app.jwt.expiration:86400000}") // 24 hours in milliseconds
+
+    private final String secretKey;
+
+    @Value("${app.jwt.expiration}") // 24 hours in milliseconds
     private long jwtExpirationMs;
 
-    @Value("${app.jwt.refresh-expiration:604800000}") // 7 days in milliseconds
-    private long refreshExpirationMs;
-
-    // MODERN: Generate secure key
-    private SecretKey getSigningKey() {
-        // In production, use a more secure approach to handle the secret
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    public JwtServiceImpl() throws NoSuchAlgorithmException {
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+        SecretKey sk = keyGenerator.generateKey();
+        this.secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
     }
 
+
+    /**
+     * Returns the initialized signing key.
+     */
+    private SecretKey getKey() {
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
+    }
 
     @Override
     public String generateToken(UserDetails userDetails) {
@@ -85,7 +84,7 @@ public class JwtServiceImpl implements JwtService {
                 .subject(subject)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
+                .signWith(getKey())
                 .compact();
     }
 
@@ -126,7 +125,7 @@ public class JwtServiceImpl implements JwtService {
     private Claims extractAllClaims(String token) {
         try {
             return Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(getKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();

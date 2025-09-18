@@ -1,7 +1,5 @@
 package com.example.taskapi.security;
 
-import com.example.taskapi.exception.UserNotFoundException;
-import com.example.taskapi.security.CustomAuthenticationProvider;
 import com.example.taskapi.security.CustomUserDetailsService;
 import com.example.taskapi.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +11,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -33,23 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-/**
- * Enhanced JWT Authentication Filter with comprehensive security features
- *
- * SECURITY ENHANCEMENTS:
- * - Proper JWT exception handling with detailed logging
- * - Rate limiting protection for authentication attempts
- * - Security headers for all responses
- * - Comprehensive error responses in JSON format
- * - Path pattern matching for public endpoints
- * - Token blacklist checking (optional)
- * - Request correlation ID for debugging
- *
- * @author Code Review System
- * @version 2.0
- * @since 2025-09-17
- */
 
 @Slf4j
 @Component
@@ -86,9 +65,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // Set security headers for all responses
-       // setSecurityHeaders(response);
-
         try {
             // Skip JWT validation for public endpoints
             if (isPublicEndpoint(request.getRequestURI())) {
@@ -97,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Extract and validate JWT token
+            // Extract JWT token
             String jwt = parseJwt(request);
 
             if (jwt == null || jwt.trim().isEmpty()) {
@@ -134,14 +110,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Authenticate user with JWT token
+     * FIXED: Authenticate user with JWT token
      */
     private void authenticateUser(HttpServletRequest request, HttpServletResponse response,
                                   FilterChain filterChain, String jwt)
             throws ServletException, IOException {
 
+        try {
             // Extract username from token
             String username = jwtService.extractUsername(jwt);
+            log.debug("Extracted username from JWT: {}", (username));
 
             if (username == null || username.trim().isEmpty()) {
                 log.warn("No username found in JWT token");
@@ -157,12 +135,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Load user details
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            // FIXED: Load user details from database
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(username);
+                log.debug("User details loaded for: {}", (username));
+            } catch (UsernameNotFoundException ex) {
+                log.warn("User not found: {}", (username));
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND",
+                        "User not found");
+                return;
+            }
 
-            // Validate token against user details
+            // FIXED: Validate token against user details (proper method signature)
             if (!jwtService.isTokenValid(jwt, userDetails)) {
-                log.warn("Invalid JWT token for user: {}", username);
+                log.warn("Invalid JWT token for user: {}", (username));
                 sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "INVALID_TOKEN",
                         "Token validation failed");
                 return;
@@ -170,19 +157,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Check user account status
             if (!userDetails.isEnabled()) {
-                log.warn("Disabled user attempted access: {}", username);
+                log.warn("Account disabled: {}", (username));
                 sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "ACCOUNT_DISABLED",
                         "Account is disabled");
                 return;
             }
-            // Set authentication in security context
+
+            if (!userDetails.isAccountNonLocked()) {
+                log.warn("Account locked: {}", (username));
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "ACCOUNT_LOCKED",
+                        "Account is locked");
+                return;
+            }
+
+            if (!userDetails.isAccountNonExpired()) {
+                log.warn("Account expired: {}", (username));
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "ACCOUNT_EXPIRED",
+                        "Account has expired");
+                return;
+            }
+
+            if (!userDetails.isCredentialsNonExpired()) {
+                log.warn("Credentials expired: {}", username);
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "CREDENTIALS_EXPIRED",
+                        "Credentials have expired");
+                return;
+            }
+
+            // FIXED: Set authentication in security context
             setAuthenticationInContext(request, userDetails);
 
-            log.debug("Successfully authenticated user: {} for request: {}", username, request.getRequestURI());
+            log.debug("Successfully authenticated user: {} for request: {}",
+                    username, request.getRequestURI());
 
             // Continue filter chain
             filterChain.doFilter(request, response);
 
+        } catch (Exception ex) {
+            log.error("Error during user authentication: {}", ex.getMessage(), ex);
+            sendErrorResponse(response, HttpStatus.INTERNAL_SERVER_ERROR, "AUTHENTICATION_ERROR",
+                    "Authentication processing failed");
+        }
     }
 
     /**
@@ -206,12 +221,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Set authentication in Spring Security context
+     * FIXED: Set authentication in Spring Security context
      */
     private void setAuthenticationInContext(HttpServletRequest request, UserDetails userDetails) {
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                 userDetails,
-                null
+                null,
+                userDetails.getAuthorities() // FIXED: Include authorities
         );
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -257,5 +273,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return xClientIP;
         }
         return request.getRemoteAddr();
+    }
+
+    /**
+     * Check if request should skip filter (for performance)
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+
+        // Skip filter for static resources
+        return path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/images/") ||
+                path.startsWith("/favicon.ico") ||
+                path.startsWith("/webjars/");
     }
 }

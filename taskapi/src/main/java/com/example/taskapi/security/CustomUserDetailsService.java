@@ -56,6 +56,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .orElseThrow(UserNotFoundException::new);
         });
 
+        assert user != null;
         log.info("User found: {}", user.getAppUserContact().getEmail());
         // Check if user data is complete
         if (user.getAppUserSecurity() == null) {

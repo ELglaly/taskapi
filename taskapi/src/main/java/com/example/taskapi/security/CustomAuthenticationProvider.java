@@ -46,23 +46,21 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         if (!userDetails.isEnabled()) {
             throw new BadCredentialsException("Account is disabled");
         }
-
         if (!userDetails.isAccountNonLocked()) {
             throw new BadCredentialsException("Account is locked");
         }
-
         if (!userDetails.isAccountNonExpired()) {
             throw new BadCredentialsException("Account has expired");
         }
-
         if (!userDetails.isCredentialsNonExpired()) {
             throw new BadCredentialsException("Credentials have expired");
         }
 
-        // Return authenticated token
+        // Return authenticated token with authorities so isAuthenticated()==true
         return new UsernamePasswordAuthenticationToken(
                 userDetails,
-                password
+                null,
+                userDetails.getAuthorities()
         );
     }
 

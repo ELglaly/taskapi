@@ -33,6 +33,11 @@ import java.util.List;
 @AllArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
+    /**
+     * -- GETTER --
+     *  Get the actual username for display purposes
+     */
+    @Getter
     private Long id;
     private String username;
     private String email;
