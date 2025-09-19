@@ -12,6 +12,7 @@ import lombok.*;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class TaskCreateRequest {
 
     @NotBlank(message = "Title is required and cannot be empty")

@@ -29,10 +29,9 @@ public class TaskController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse> createTask(
-            @Valid @RequestBody TaskCreateRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+            @Valid @RequestBody TaskCreateRequest request) {
 
-        log.info("Creating task for user: {}", currentUser.getUsername());
+        log.info("Creating task for user");
 
         TaskDto createdTask = taskService.createTask(request);
 
@@ -49,10 +48,9 @@ public class TaskController {
     @PutMapping("/{taskId}")
     public ResponseEntity<ApiResponse> updateTask(
             @PathVariable Long taskId,
-            @Valid @RequestBody TaskUpdateRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+            @Valid @RequestBody TaskUpdateRequest request) {
 
-        log.info("Updating task {} for user: {}", taskId, currentUser.getUsername());
+        log.info("Updating task {} for user", taskId);
 
         TaskDto updatedTask = taskService.updateTask(request, taskId);
 

@@ -58,6 +58,26 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
+    /**
+     * Handle TaskNotFoundException - SPECIFIC HANDLER FIRST
+     */
+    @ExceptionHandler(TaskNotFoundException.class)
+    public ResponseEntity<AppErrorResponse> handleTaskNotFoundException(
+            TaskNotFoundException ex, WebRequest request) {
+
+        log.warn("Task not found: {}", ex.getMessage());
+
+        AppErrorResponse errorResponse = AppErrorResponse.builder()
+                .message(ex.getMessage() != null ? ex.getMessage() : "Task not found")
+                .status(HttpStatus.NOT_FOUND.value())
+                .errorCode("TASK_NOT_FOUND")
+                .path(extractPath(request))
+                .timestamp()
+                .isLoggable(false)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
 
     /**
      * Handle constraint validation exceptions
