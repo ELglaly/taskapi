@@ -6,8 +6,6 @@ import com.example.taskapi.request.LoginRequest;
 import com.example.taskapi.request.RegistrationRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
