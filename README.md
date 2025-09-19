@@ -66,9 +66,12 @@ cd taskapi
 ### Environment Variables
 
 ```bash
-DB_URL=jdbc:mysql://localhost:3306/taskapi
+DB_URL=jdbc:your_url
+DB_CLOSE_DELAY=your_delay
+DB_CLOSE_ON_EXIT=your_data
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
+H2_PATH=yourpath
 JWT_EXPIRE=86400000
 ```
 
