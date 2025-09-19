@@ -1,6 +1,4 @@
 package com.example.taskapi;
-
-import com.example.taskapi.config.TestSecurityConfig;
 import com.example.taskapi.controller.TaskController;
 import com.example.taskapi.dto.TaskDto;
 import com.example.taskapi.entity.appenum.TaskStatus;
@@ -30,15 +28,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
@@ -82,8 +74,6 @@ class TaskControllerTest {
         public TaskService taskService() {
             return Mockito.mock(TaskService.class);
         }
-
-
         @Bean
         public JwtService jwtService() {
             return Mockito.mock(JwtService.class);
