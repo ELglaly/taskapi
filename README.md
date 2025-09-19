@@ -1,6 +1,6 @@
 # Task Management API
 
-A robust, secure, and scalable RESTful API for task management built with Spring Boot 3.x featuring JWT authentication, validation, and production-ready architecture.
+A robust, secure, and scalable RESTful API for task management built with Spring Boot 3.x featuring JWT authentication, validation
 
 ---
 
@@ -104,10 +104,9 @@ POST /auth/register
 Content-Type: application/json
 
 {
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "password": "SecurePass123!"
+  "name": "Sherif",
+  "email": "Sherif@example.com",
+  "password": "Password!"
 }
 ```
 
